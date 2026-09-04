@@ -1,0 +1,42 @@
+trigger: none
+
+pool:
+  vmImage: "ubuntu-latest"
+
+variables:
+  resourceGroup: "devops-demo-rg"
+  location: "eastus"
+  vmName: "devops-vm"
+  adminUsername: "azureuser"
+  adminPassword: "UseA_StrongPassword123!"
+  image: "Win2022Datacenter"
+  vmSize: "Standard_B2s"
+
+steps:
+  - task: AzureCLI@2
+    displayName: "Create Resource Group"
+    inputs:
+      azureSubscription: "devops"
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        az group create \
+          --name "$(resourceGroup)" \
+          --location "$(location)" \
+          --output json
+
+  - task: AzureCLI@2
+    displayName: "Create Virtual Machine"
+    inputs:
+      azureSubscription: "devops"
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        az vm create \
+          --resource-group "$(resourceGroup)" \
+          --name "$(vmName)" \
+          --image "$(image)" \
+          --admin-username "$(adminUsername)" \
+          --admin-password "$(adminPassword)" \
+          --size "$(vmSize)" \
+          --output json
