@@ -1,0 +1,40 @@
+trigger:
+  - main  # change if your default branch is different
+
+pr: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: GitHubSecrets
+  - name: GITHUB_USER
+    value: 'kkazuredev'
+  - name: GITHUB_REPO
+    value: 'terraform'
+  - name: GITHUB_URL
+    value: 'https://$(GITHUB_USER):$(GITHUB_PAT)@github.com/$(GITHUB_USER)/$(GITHUB_REPO).git'
+  - name: GIT_EMAIL
+    value: 'you@example.com'        # optional, any email is fine
+  - name: GIT_NAME
+    value: 'Azure Pipelines'
+
+jobs:
+  - job: MirrorToGitHub
+    steps:
+      - checkout: self
+        fetchDepth: 0  # full history for mirror
+
+      - script: |
+          git config --global user.email "$(GIT_EMAIL)"
+          git config --global user.name "$(GIT_NAME)"
+
+          git remote remove github 2>/dev/null || true
+          git remote add github "$(GITHUB_URL)"
+
+          # Push all branches and tags to GitHub
+          git push --force github --all
+          git push --force github --tags
+        displayName: 'Mirror Azure DevOps repo to GitHub'
+        env:
+          GITHUB_PAT: $(GITHUB_PAT)

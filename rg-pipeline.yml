@@ -1,0 +1,50 @@
+trigger: none
+
+pool: 
+  vmImage: 'windows-latest'
+
+
+
+variables:
+  TF_ROOT: 'tfrggroup'
+  ARM_CLIENT_ID: 06766bec-1609-4f35-bfd5-cd7303c725ac
+  ARM_CLIENT_SECRET: GHQ8Q~xUIbxNHFexNj5MM3zXHdiqPRC_ktQKibHF
+  ARM_SUBSCRIPTION_ID: 7238a40c-8382-465f-882f-af3d757a0dce
+  ARM_TENANT_ID: 162771d0-d0c8-4612-b26a-11a47c0fa55a
+
+
+stages:
+- stage: TerraformInitValidate
+  jobs:
+  - job: init
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.x'
+
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+
+    - script: |
+        terraform init
+        terraform validate
+      workingDirectory: $(TF_ROOT)
+      displayName: 'Terraform Init & Validate'
+
+
+- stage: TerraformPlanApply
+  dependsOn: TerraformInitValidate
+  condition: succeeded()
+  jobs:
+  - job: planapply
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+    - script: |
+        terraform init
+        terraform plan -out=tfplan
+        terraform apply -auto-approve tfplan
+      workingDirectory: $(TF_ROOT)
+      displayName: 'Terraform plan & apply'
