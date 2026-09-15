@@ -1,0 +1,69 @@
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureServiceConnection: 'devops-sub'
+  resourceGroupName: 'rgtf2-eus2'
+  location: 'eastus2'
+
+steps:
+
+
+  - task: TerraformInstaller@1
+    displayName: 'Terraform Installer'
+    inputs:
+      terraformVersion: 'latest'
+
+  - task: AzureCLI@2
+    displayName: 'Terraform Init & check RG'
+    inputs:
+      azureSubscription: '$(azureServiceConnection)'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      workingDirectory: '$(terraformDirectory)'
+      inlineScript: |
+
+        terraform init
+
+
+        echo "checking RG: $(resourceGroupName)"
+
+        RG_EXISTS=$(az group exists --name "$(resourceGroupName)")
+
+        if [ "$RG_EXISTS" = "true" ]; then
+          echo "RG already exists."
+          
+          RG_ID=$(az group show --name "$(resourceGroupName)" --query id -o tsv)
+
+          echo "importing existing RG group into Terraform statefile"
+          terraform import azurerm_resource_group.rg "$RG_ID"
+          echo "imported RG successfully"
+
+        else
+          echo "RG doesn't exist"
+          echo "terraform creating RG"
+          echo "created RG successfully"
+        fi
+
+  - task: AzureCLI@2
+    displayName: 'Terraform Plan'
+    inputs:
+      azureSubscription: '$(azureServiceConnection)'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      workingDirectory: '$(terraformDirectory)'
+      inlineScript: |
+        terraform plan -out=tfplan
+
+
+  - task: AzureCLI@2
+    displayName: 'Terraform apply'
+    inputs:
+      azureSubscription: '$(azureServiceConnection)'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      workingDirectory: '$(terraformDirectory)'
+      inlineScript: |
+        terraform apply -auto-approve tfplan
