@@ -1,33 +1,32 @@
 trigger: none
 
-pool:
+pool: 
   vmImage: 'ubuntu-latest'
 
 variables:
   azureServiceConnection: 'devops-sub'
-  resourceGroupName: 'rgtf2-eus2'
-  terraformDirectory: 'tfrgbackend'
+  resourceGroupName: 'bkrgtf-eus2'
+  terraformDirectory: 'terraformvm2'
+  vmName: 'vmcheck'
+
 
 
 steps:
-
-
   - task: TerraformInstaller@1
-    displayName: 'Terraform Installer'
+    displayName: 'Terraform Installer' 
     inputs:
       terraformVersion: 'latest'
 
   - task: AzureCLI@2
-    displayName: 'Terraform Init & check RG'
+    displayName: 'Terraform Init & check VM'
     inputs:
       azureSubscription: '$(azureServiceConnection)'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       workingDirectory: '$(terraformDirectory)'
       inlineScript: |
-
         terraform init
-        
+
         echo "checking RG: $(resourceGroupName)"
 
         EXISTS=$(az group exists \
@@ -54,6 +53,34 @@ steps:
         
         fi
 
+        echo "Checking VM: $(vmName)"
+        echo "Resource Group: $(resourceGroupName)"
+        EXISTS=$(az vm show \
+        --name "$(vmName)" \
+        --resource-group "$(resourceGroupName)" \
+        --query name \
+        -o tsv)
+
+        if [ "$EXISTS" = "$(vmName)" ]; then
+          echo "VM already exists."
+          echo "importing existing VM into Terraform statefile"
+          VM_ID=$(az vm show \
+          --name "$(vmName)" \
+          --resource-group "$(resourceGroupName)" \
+          --query id \
+          -o tsv)
+          
+          terraform import \
+          azurerm_linux_virtual_machine.vmcheck \
+          "$VM_ID" || echo "imported VM successfully"
+
+        else
+          
+          echo "VM doesn't exist"
+          echo "terraform creating VM"
+        
+        fi
+
   - task: AzureCLI@2
     displayName: 'Terraform Plan'
     inputs:
@@ -64,9 +91,8 @@ steps:
       inlineScript: |
         terraform plan -out=tfplan
 
-
   - task: AzureCLI@2
-    displayName: 'Terraform apply'
+    displayName: 'Terraform Apply'
     inputs:
       azureSubscription: '$(azureServiceConnection)'
       scriptType: 'bash'

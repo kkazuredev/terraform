@@ -1,31 +1,28 @@
-trigger: none
+trigger:  none
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
   azureServiceConnection: 'devops-sub'
-  resourceGroupName: 'rgtf2-eus2'
-  terraformDirectory: 'tfrgbackend'
-
+  resourceGroupName: 'bkrgtf-eus2'
+  storageAccountName: 'stgtf2state'
+  terraformDirectory: 'tfstorage2'
 
 steps:
-
-
   - task: TerraformInstaller@1
-    displayName: 'Terraform Installer'
+    displayName: 'Terraform Installer' 
     inputs:
       terraformVersion: 'latest'
 
   - task: AzureCLI@2
-    displayName: 'Terraform Init & check RG'
+    displayName: 'Terraform Init & check storage account'
     inputs:
       azureSubscription: '$(azureServiceConnection)'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       workingDirectory: '$(terraformDirectory)'
       inlineScript: |
-
         terraform init
         
         echo "checking RG: $(resourceGroupName)"
@@ -54,6 +51,34 @@ steps:
         
         fi
 
+
+        echo "Checking Storage Account: $(storageAccountName)"
+        echo "Resource Group: $(resourceGroupName)"
+        EXISTS=$(az storage account check-name \
+        --name "$(storageAccountName)" \
+        --query nameAvailable \
+        -o tsv)
+
+        if [ "$EXISTS" = "false" ]; then
+          echo "Storage Account already exists."
+          echo "importing existing storage account into Terraform statefile"
+          STORAGE_ID=$(az storage account show \
+          --name "$(storageAccountName)" \
+          --resource-group "$(resourceGroupName)" \
+          --query id \
+          -o tsv)
+          
+          terraform import \
+          azurerm_storage_account.stg \
+          "$STORAGE_ID" || echo "imported storage account successfully"
+
+        else
+          
+          echo "Storage Account doesn't exist"
+          echo "terraform creating storage account"
+        
+        fi
+
   - task: AzureCLI@2
     displayName: 'Terraform Plan'
     inputs:
@@ -63,10 +88,9 @@ steps:
       workingDirectory: '$(terraformDirectory)'
       inlineScript: |
         terraform plan -out=tfplan
-
-
+    
   - task: AzureCLI@2
-    displayName: 'Terraform apply'
+    displayName: 'Terraform Apply'
     inputs:
       azureSubscription: '$(azureServiceConnection)'
       scriptType: 'bash'

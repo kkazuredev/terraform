@@ -6,7 +6,7 @@ variable "rg_location" {
 }
 
 variable "vm_name" {
-    default = "tf-vm"
+    default = "vmcheck"
 }
 variable "vm_size" {
     default = "Standard_B1s"
