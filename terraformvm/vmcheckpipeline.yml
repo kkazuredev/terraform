@@ -1,5 +1,43 @@
 trigger: none
 
+parameters:
+  - name: azureServiceConnection
+    type: string
+    default: 'devops-sub'
+  - name: resourceGroupName
+    type: string
+    default: 'bkrgtf-eus2'
+  - name: terraformDirectory
+    type: string
+    default: 'terraformvm2'
+  - name: vmName
+    type: string
+    default: 'vmcheck'
+  - name: environment
+    type: string
+    default: 'dev'
+    values:
+      - dev
+      - QA
+      - prod
+
+  - name: location
+    displayName: 'Select Location'
+    type: string
+    default: 'eastus2'
+    values:
+      - eastus2
+      - westus2
+      - centralus
+  - name:  terraformAction
+    displayName: 'Select Terraform Action'
+    type: string
+    default: 'plan'
+    values:
+      - plan
+      - apply
+      - destroy
+
 pool: 
   vmImage: 'ubuntu-latest'
 

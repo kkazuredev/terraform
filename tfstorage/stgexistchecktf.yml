@@ -1,5 +1,26 @@
 trigger:  none
 
+parameters:
+  - name: azureServiceConnection
+    type: string
+    default: 'devops-sub'
+  - name: resourceGroupName
+    type: string
+    default: 'bkrgtf-eus2'
+  - name: storageAccountName
+    type: string
+    default: 'stgtf2state'
+  - name: terraformDirectory
+    type: string
+    default: 'tfstorage2'
+  -  name: environment
+     type: string
+     default: 'dev'
+     values:
+      - dev
+      - QA
+      - prod
+
 pool:
   vmImage: 'ubuntu-latest'
 
